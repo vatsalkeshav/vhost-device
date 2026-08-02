@@ -356,13 +356,6 @@ impl VhostUserVsockThread {
                                     local_port,
                                     peer_port,
                                 );
-                                if let Err(err) = Self::epoll_register(
-                                    self.get_epoll_fd(),
-                                    stream_raw_fd,
-                                    epoll::Events::EPOLLIN | epoll::Events::EPOLLOUT,
-                                ) {
-                                    warn!("Failed to register with epoll: {err:?}");
-                                }
                             }
                             Err(err) => {
                                 warn!("Unable to accept new local connection: {err:?}");
@@ -420,13 +413,8 @@ impl VhostUserVsockThread {
 
                         self.add_new_connection_from_host(fd, stream, local_port, peer_port);
 
-                        // Re-register the fd to listen for EPOLLIN and EPOLLOUT events
-                        Self::epoll_modify(
-                            self.get_epoll_fd(),
-                            fd,
-                            epoll::Events::EPOLLIN | epoll::Events::EPOLLOUT,
-                        )
-                        .unwrap();
+                        // wait till guest accepts connection before forwarding local data
+                        Self::epoll_unregister(self.get_epoll_fd(), fd).unwrap();
                     }
                 }
             } else {
