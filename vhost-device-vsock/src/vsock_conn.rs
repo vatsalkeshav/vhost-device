@@ -190,7 +190,7 @@ impl<S: AsRawFd + ReadVolatile + Write + WriteVolatile + IsHybridVsock> VsockCon
                             ) {
                                 // TODO: let's move this logic out of this func, and handle it
                                 // properly
-                                error!("epoll_register failed: {e:?}, but proceed further");
+                                error!("epoll_register failed: {e:?}, but proceed further.");
                             }
                         };
                     }
@@ -238,20 +238,11 @@ impl<S: AsRawFd + ReadVolatile + Write + WriteVolatile + IsHybridVsock> VsockCon
                     self.stream.write_all(response.as_bytes()).unwrap();
                 }
                 self.connect = true;
-                if VhostUserVsockThread::epoll_register(
+                if let Err(e) = VhostUserVsockThread::enable_stream_polling(
                     self.epoll_fd,
                     self.stream.as_raw_fd(),
-                    epoll::Events::EPOLLIN | epoll::Events::EPOLLOUT,
-                )
-                .is_err()
-                {
-                    if let Err(e) = VhostUserVsockThread::epoll_modify(
-                        self.epoll_fd,
-                        self.stream.as_raw_fd(),
-                        epoll::Events::EPOLLIN | epoll::Events::EPOLLOUT,
-                    ) {
-                        error!("epoll_register failed: {e:?}, but proceed further.");
-                    }
+                ) {
+                    error!("failed to start stream polling: {e:?}");
                 }
             }
             VSOCK_OP_RW => {

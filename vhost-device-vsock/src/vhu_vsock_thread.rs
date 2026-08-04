@@ -463,6 +463,21 @@ impl VhostUserVsockThread {
         }
     }
 
+    pub(crate) fn enable_stream_polling(epoll_fd: RawFd, fd: RawFd) -> Result<()> {
+        Self::epoll_register(
+            epoll_fd,
+            fd,
+            epoll::Events::EPOLLIN | epoll::Events::EPOLLOUT,
+        )
+        .or_else(|_| {
+            Self::epoll_modify(
+                epoll_fd,
+                fd,
+                epoll::Events::EPOLLIN | epoll::Events::EPOLLOUT,
+            )
+        })
+    }
+
     fn add_new_connection_from_host(
         &mut self,
         fd: RawFd,
